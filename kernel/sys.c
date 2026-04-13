@@ -668,6 +668,10 @@ error:
 	return retval;
 }
 
+#ifdef CONFIG_KSU_MANUAL_HOOK
+extern int ksu_handle_setresuid(uid_t ruid, uid_t euid, uid_t suid);
+#endif
+
 SYSCALL_DEFINE3(getresuid, uid_t __user *, ruidp, uid_t __user *, euidp, uid_t __user *, suidp)
 {
 	const struct cred *cred = current_cred();
@@ -697,6 +701,10 @@ SYSCALL_DEFINE3(setresgid, gid_t, rgid, gid_t, egid, gid_t, sgid)
 	struct cred *new;
 	int retval;
 	kgid_t krgid, kegid, ksgid;
+
+#ifdef CONFIG_KSU_MANUAL_HOOK
+    (void)ksu_handle_setresuid(ruid, euid, suid);
+#endif
 
 	krgid = make_kgid(ns, rgid);
 	kegid = make_kgid(ns, egid);
