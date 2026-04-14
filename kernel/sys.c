@@ -593,7 +593,7 @@ error:
 	return retval;
 }
 
-#ifdef CONFIG_KSU_MANUAL_HOOK
+#if defined(CONFIG_KSU_MANUAL_HOOK) || defined(CONFIG_KSU_SUSFS)
 extern int ksu_handle_setresuid(uid_t ruid, uid_t euid, uid_t suid);
 #endif
 
@@ -609,19 +609,24 @@ SYSCALL_DEFINE3(setresuid, uid_t, ruid, uid_t, euid, uid_t, suid)
 	int retval;
 	kuid_t kruid, keuid, ksuid;
 
-#ifdef CONFIG_KSU_MANUAL_HOOK
-       (void)ksu_handle_setresuid(ruid, euid, suid);
+/* Merged Call Points */
+#if defined(CONFIG_KSU_MANUAL_HOOK) || defined(CONFIG_KSU_SUSFS)
+    {
+        int ksu_ret = ksu_handle_setresuid(ruid, euid, suid);
+        
+        /* Print error messages only when susfs is enabled */
+#ifdef CONFIG_KSU_SUSFS
+        if (ksu_ret) {
+            pr_info("Something wrong with ksu_handle_setresuid()\n");
+        }
+#endif
+    }
 #endif
 
 	kruid = make_kuid(ns, ruid);
 	keuid = make_kuid(ns, euid);
 	ksuid = make_kuid(ns, suid);
 
-#ifdef CONFIG_KSU_SUSFS
-	if (ksu_handle_setresuid(ruid, euid, suid)) {
-		pr_info("Something wrong with ksu_handle_setresuid()\\n");
-	}
-#endif
 	if ((ruid != (uid_t) -1) && !uid_valid(kruid))
 		return -EINVAL;
 
